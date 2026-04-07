@@ -90,11 +90,7 @@ Optional:
 Exemplu:
 
 ```bash
-python train_mt5_ml_strategy.py \
-  --csv eurusd_h1.csv \
-  --symbol EURUSD \
-  --timeframe H1 \
-  --output-dir output
+python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
 ```
 
 ### Ce obtii dupa rulare
@@ -252,3 +248,40 @@ Dupa ce confirmi ca fluxul functioneaza cap-coada:
 - salveaza pragul si alti parametri intr-un fisier JSON/CSV si citeste-i din MQL5
 - fa o versiune multi-simbol
 
+## 10. Invatare pe 70% si testare pe 30%
+
+Pregatire date de output full in `output_full`:
+```bash
+python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output_full
+```
+
+Invatare dupa 70% din date:
+```bash
+python -c "import pandas as pd; df=pd.read_csv('output_full/training_rates_snapshot.csv', parse_dates=['time']); split=int(len(df)*0.7); train=df.iloc[:split].copy(); test=df.iloc[split:].copy(); train.to_csv('output_full/train_rates.csv', index=False); test.to_csv('output_full/test_rates.csv', index=False); print('ROWS_TOTAL=', len(df)); print('ROWS_TRAIN=', len(train)); print('ROWS_TEST=', len(test)); print('TRAIN_START=', train['time'].iloc[0]); print('TRAIN_END=', train['time'].iloc[-1]); print('TEST_START=', test['time'].iloc[0]); print('TEST_END=', test['time'].iloc[-1])"
+
+python train_mt5_ml_strategy.py --csv output_full\train_rates.csv --symbol XAGUSD --timeframe M15 --output-dir output_train70
+```
+
+Compilare cu onnx din output_train70. Testare pe 30% din date pe baza TEST_START si TEST_END din terminal.
+
+## 11. Invatare pe 50% si testare pe 50%
+
+Invatare dupa 50% din date:
+```bash
+python -c "import pandas as pd; df=pd.read_csv('output_full/training_rates_snapshot.csv', parse_dates=['time']); split=int(len(df)*0.5); train=df.iloc[:split].copy(); test=df.iloc[split:].copy(); train.to_csv('output_full/train_rates_50.csv', index=False); test.to_csv('output_full/test_rates_50.csv', index=False); print('ROWS_TOTAL=', len(df)); print('ROWS_TRAIN=', len(train)); print('ROWS_TEST=', len(test)); print('TRAIN_START=', train['time'].iloc[0]); print('TRAIN_END=', train['time'].iloc[-1]); print('TEST_START=', test['time'].iloc[0]); print('TEST_END=', test['time'].iloc[-1])"
+
+python train_mt5_ml_strategy.py --csv output_full\train_rates_50.csv --symbol XAGUSD --timeframe M15 --output-dir output_train50
+```
+
+Compilare cu onnx din output_train50. Testare pe 50% din date pe baza TEST_START si TEST_END din terminal.
+
+## 12. Verificare shuffled data
+
+Pregatire shuffled data:
+```bash
+python -c "import pandas as pd, numpy as np; df=pd.read_csv('output_full/train_rates.csv', parse_dates=['time']); shuffled=df[['open','high','low','close','volume']].sample(frac=1, random_state=42).reset_index(drop=True); out=pd.DataFrame({'time': df['time'].reset_index(drop=True), 'open': shuffled['open'], 'high': shuffled['high'], 'low': shuffled['low'], 'close': shuffled['close'], 'volume': shuffled['volume']}); out.to_csv('output_full/train_rates_shuffled.csv', index=False); print('Saved output_full/train_rates_shuffled.csv with', len(out), 'rows')"
+
+python train_mt5_ml_strategy.py --csv output_full\train_rates_shuffled.csv --symbol XAGUSD --timeframe M15 --output-dir output_train_shuffled
+```
+
+Compilare cu onnx din output_train_shuffled. Testare pe 100% din date.
