@@ -1,21 +1,21 @@
-# Strategie ML pentru MetaTrader 5: Python -> ONNX -> Expert Advisor MQL5
+# ML Strategy for MetaTrader 5: Python -> ONNX -> MQL5 Expert Advisor
 
-Acest pachet contine un exemplu complet pentru fluxul cel mai practic cand vrei:
+This package contains a complete example for the most practical flow when you want:
 
-1. sa antrenezi modelul in Python,
-2. sa il exporti in ONNX,
-3. sa il rulezi in Expert Advisor-ul MT5,
-4. sa il testezi direct in **MetaTrader 5 Strategy Tester**.
+1. to train the model in Python,
+2. to export it to ONNX,
+3. to run it in the MT5 Expert Advisor,
+4. to test it directly in **MetaTrader 5 Strategy Tester**.
 
-## Ce contine
+## What it contains
 
-- `train_mt5_ml_strategy.py` - scriptul Python pentru training si export ONNX
-- `MT5_ML_ONNX_Strategy.mq5` - Expert Advisor-ul pentru MT5
-- `README.md` - pasii de lucru
+- `train_mt5_ml_strategy.py` - Python script for training and ONNX export
+- `MT5_ML_ONNX_Strategy.mq5` - Expert Advisor for MT5
+- `README.md` - work steps
 
-## Ideea strategiei
+## Strategy idea
 
-Modelul invata sa estimeze **randamentul urmatorului bar inchis** (`next closed-bar return`) pe baza a 10 features simple:
+The model learns to estimate the **return of the next closed bar** (`next closed-bar return`) based on 10 simple features:
 
 - `ret_1`, `ret_3`, `ret_5`, `ret_10`
 - `vol_10`, `vol_20`
@@ -23,32 +23,32 @@ Modelul invata sa estimeze **randamentul urmatorului bar inchis** (`next closed-
 - `zscore_20`
 - `atr_14`
 
-Semnalul de tranzactionare este apoi:
+The trading signal is then:
 
-- `BUY` daca predictia > `+EntryThreshold`
-- `SELL` daca predictia < `-EntryThreshold`
-- `FLAT` altfel
+- `BUY` if prediction > `+EntryThreshold`
+- `SELL` if prediction < `-EntryThreshold`
+- `FLAT` otherwise
 
-EA-ul deschide cel mult o pozitie pe simbol si foloseste optional SL/TP pe baza ATR.
+The EA opens at most one position per symbol and optionally uses SL/TP based on ATR.
 
 ---
 
-## De ce fluxul este facut asa
+## Why the flow is made this way
 
-**MetaTrader 5 Strategy Tester testeaza programe MQL5, nu scripturi Python.**
+**MetaTrader 5 Strategy Tester tests MQL5 programs, not Python scripts.**
 
-De aceea, pentru a putea face backtesting chiar in MT5, fluxul corect este:
+Therefore, to be able to do backtesting right in MT5, the correct flow is:
 
 - training in Python,
-- export model in ONNX,
-- rulare model in MQL5,
+- export model to ONNX,
+- run model in MQL5,
 - backtest in Strategy Tester.
 
 ---
 
-## 1. Instalare dependinte Python
+## 1. Install Python dependencies
 
-Exemplu cu venv:
+Example with venv:
 
 ```bash
 python -m venv .venv
@@ -59,23 +59,23 @@ pip install --upgrade pip
 pip install MetaTrader5 pandas numpy scikit-learn skl2onnx onnx
 ```
 
-Daca nu vrei sa citesti datele direct din terminalul MT5, poti folosi si un CSV exportat separat din MT5.
+If you don't want to read data directly from the MT5 terminal, you can also use a CSV exported separately from MT5.
 
 ---
 
-## 2. Antrenare model din Python
+## 2. Train model from Python
 
-### Varianta A - citire directa din terminalul MT5
+### Variant A - read directly from MT5 terminal
 
-Terminalul MT5 trebuie sa fie pornit si conectat.
+The MT5 terminal must be started and connected.
 
 ```bash
 python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
 ```
 
-### Varianta B - citire din CSV
+### Variant B - read from CSV
 
-CSV-ul trebuie sa aiba macar coloanele:
+The CSV must have at least the columns:
 
 - `time`
 - `open`
@@ -87,123 +87,123 @@ Optional:
 
 - `volume`
 
-Exemplu:
+Example:
 
 ```bash
 python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
 ```
 
-### Ce obtii dupa rulare
+### What you get after running
 
-In directorul `output/`:
+In the `output/` directory:
 
 - `ml_strategy_model.onnx`
 - `model_metadata.json`
 - `training_rates_snapshot.csv`
 - `training_features_snapshot.csv`
 
-`model_metadata.json` contine si un prag initial sugerat pentru intrare.
+`model_metadata.json` also contains an initial suggested threshold for entry.
 
 ---
 
-## 3. Pregatire pentru MT5
+## 3. Preparation for MT5
 
-1. Copiaza `MT5_ML_ONNX_Strategy.mq5` in:
-   - `MQL5/Experts/` sau intr-un subfolder al lui.
-2. Copiaza `output/ml_strategy_model.onnx` in **acelasi folder** cu fisierul `.mq5`.
-3. Deschide `MetaEditor`.
-4. Compileaza EA-ul.
+1. Copy `MT5_ML_ONNX_Strategy.mq5` to:
+   - `MQL5/Experts/` or a subfolder of it.
+2. Copy `output/ml_strategy_model.onnx` to the **same folder** as the `.mq5` file.
+3. Open `MetaEditor`.
+4. Compile the EA.
 
-**Important:** ONNX-ul este inclus ca resource la compilare. Daca schimbi modelul, trebuie sa recompilezi EA-ul.
+**Important:** The ONNX is included as a resource at compilation. If you change the model, you must recompile the EA.
 
 ---
 
-## 4. Cum faci backtesting in MT5
+## 4. How to do backtesting in MT5
 
 In Strategy Tester:
 
-1. Selecteaza `MT5_ML_ONNX_Strategy`
-2. Alege acelasi simbol si acelasi timeframe folosite la training
-3. Alege perioada de test
-4. Pentru ca EA-ul lucreaza doar la aparitia unei bare noi, poti folosi o modelare compatibila cu backtest-ul pe bare; totusi testeaza si in modul cel mai realist disponibil pentru brokerul tau
-5. Porneste testul
+1. Select `MT5_ML_ONNX_Strategy`
+2. Choose the same symbol and same timeframe used in training
+3. Choose the test period
+4. Since the EA works only on the appearance of a new bar, you can use a modeling compatible with bar backtest; however, also test in the most realistic mode available for your broker
+5. Start the test
 
-### Parametri importanti ai EA-ului
+### Important EA parameters
 
 - `InpEntryThreshold`
-  - pragul minim absolut al predictiei pentru a intra in piata
-  - incepe cu valoarea sugerata in `model_metadata.json`
+  - the minimum absolute threshold of the prediction to enter the market
+  - start with the value suggested in `model_metadata.json`
 - `InpUseAtrStops`
-  - activeaza SL/TP pe baza ATR
+  - activate SL/TP based on ATR
 - `InpStopAtrMultiple`, `InpTakeAtrMultiple`
-  - multipli ATR pentru SL/TP
+  - ATR multiples for SL/TP
 - `InpMaxBarsInTrade`
-  - inchidere fortata dupa un anumit numar de bare
+  - forced closure after a certain number of bars
 - `InpCloseOnOppositeSignal`
-  - inchide pozitia cand vine semnalul opus
+  - close the position when the opposite signal comes
 
 ---
 
-## 5. Ce trebuie sa verifici ca sa nu te pacalesti in backtest
+## 5. What you need to check so as not to fool yourself in backtest
 
-### A. Acelasi simbol si acelasi timeframe
-Modelul trebuie testat pe acelasi tip de date pe care a fost antrenat.
+### A. The same symbol and same timeframe
+The model must be tested on the same type of data it was trained on.
 
-### B. Doar bare inchise
-EA-ul calculeaza features pe **bara inchisa**, nu pe bara in curs, ca sa evite o parte din lookahead bias.
+### B. Only closed bars
+The EA calculates features on the **closed bar**, not on the current bar, to avoid part of the lookahead bias.
 
-### C. Costuri de tranzactionare
-Verifica in tester:
+### C. Transaction costs
+Check in tester:
 
 - spread
-- comisioane
+- commissions
 - swap
-- slippage (cat poate simula brokerul / testerul)
+- slippage (how much the broker / tester can simulate)
 
-### D. Nu optimiza excesiv
-Nu transforma testerul intr-un generator de overfitting.
+### D. Do not over-optimize
+Do not turn the tester into an overfitting generator.
 
-Bun de facut:
+Good to do:
 
-- training pe o perioada,
-- test pe alta perioada,
-- eventual optimizare pe o bucata mica,
-- apoi validare out-of-sample pe o bucata diferita.
+- training on one period,
+- test on another period,
+- possibly optimize on a small piece,
+- then out-of-sample validation on a different piece.
 
-### E. Walk-forward real
-Fluxul serios este:
+### E. Real walk-forward
+The serious flow is:
 
-- train pe trecut,
-- validare pe viitor nefolosit,
-- eventual retraining periodic.
+- train on the past,
+- validate on unused future,
+- possibly periodic retraining.
 
-Pachetul de fata iti da baza tehnica, nu garantia unei strategii profitabile.
+The current package gives you the technical basis, not the guarantee of a profitable strategy.
 
 ---
 
-## 6. Cum inveti din el
+## 6. How to learn from it
 
-### Pasul 1
-Ruleaza exact exemplul fara sa schimbi nimic.
+### Step 1
+Run the example exactly without changing anything.
 
-### Pasul 2
-Uita-te la:
+### Step 2
+Look at:
 
 - `training_features_snapshot.csv`
-- jurnalul din MT5
-- raportul de backtest
+- the MT5 journal
+- the backtest report
 
-### Pasul 3
-Schimba o singura chestie odata:
+### Step 3
+Change only one thing at a time:
 
-- pragul de intrare
-- multiplii ATR
-- numarul maxim de bare in trade
-- simbolul
-- timeframe-ul
+- entry threshold
+- ATR multiples
+- maximum number of bars in trade
+- symbol
+- timeframe
 
-### Pasul 4
-Abia dupa aceea schimba modelul.
+### Step 4
+Only after that change the model.
 
 Exemple de extensii:
 
@@ -215,73 +215,73 @@ Exemple de extensii:
 
 ---
 
-## 7. Observatii importante
+## 7. Important observations
 
-- Scriptul Python foloseste momentan `RandomForestRegressor` pentru a exporta usor un model ONNX cu o singura iesire numerica.
-- Daca vrei, il poti schimba ulterior in alt model suportat de scikit-learn / ONNX.
-- Pentru productivitate, incepe simplu si complica abia dupa ce poti reproduce aceleasi rezultate de la cap la coada.
+- The Python script currently uses `RandomForestRegressor` to easily export an ONNX model with a single numeric output.
+- If you want, you can later change it to another model supported by scikit-learn / ONNX.
+- For productivity, start simple and complicate only after you can reproduce the same results from end to end.
 
 ---
 
-## 8. Flux recomandat de lucru
+## 8. Recommended workflow
 
-1. antrenezi modelul pe istoricul vechi
-2. exporti `ml_strategy_model.onnx`
-3. compilezi EA-ul cu modelul inclus
-4. rulezi backtest
-5. ajustezi numai dupa ce ai vazut:
-   - numar tranzactii
+1. train the model on old history
+2. export `ml_strategy_model.onnx`
+3. compile the EA with the included model
+4. run backtest
+5. adjust only after you have seen:
+   - number of transactions
    - profit factor
    - drawdown
    - expectancy
-   - distributia tranzactiilor
-6. refaci training-ul doar cand ai o ipoteza clara
+   - distribution of transactions
+6. redo the training only when you have a clear hypothesis
 
 ---
 
-## 9. Ce as face mai departe dupa ce ruleaza
+## 9. What I would do next after it runs
 
-Dupa ce confirmi ca fluxul functioneaza cap-coada:
+After you confirm that the flow works end-to-end:
 
-- adauga **walk-forward retraining** in Python
-- compara `RandomForestRegressor` cu `LogisticRegression`, `Ridge`, `XGBoost` sau `LightGBM`
-- salveaza pragul si alti parametri intr-un fisier JSON/CSV si citeste-i din MQL5
-- fa o versiune multi-simbol
+- add **walk-forward retraining** in Python
+- compare `RandomForestRegressor` with `LogisticRegression`, `Ridge`, `XGBoost` or `LightGBM`
+- save the threshold and other parameters in a JSON/CSV file and read them from MQL5
+- make a multi-symbol version
 
-## 10. Invatare pe 70% si testare pe 30%
+## 10. Learning on 70% and testing on 30%
 
-Pregatire date de output full in `output_full`:
+Preparation of full output data in `output_full`:
 ```bash
 python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output_full
 ```
 
-Invatare dupa 70% din date:
+Learning after 70% of data:
 ```bash
 python -c "import pandas as pd; df=pd.read_csv('output_full/training_rates_snapshot.csv', parse_dates=['time']); split=int(len(df)*0.7); train=df.iloc[:split].copy(); test=df.iloc[split:].copy(); train.to_csv('output_full/train_rates.csv', index=False); test.to_csv('output_full/test_rates.csv', index=False); print('ROWS_TOTAL=', len(df)); print('ROWS_TRAIN=', len(train)); print('ROWS_TEST=', len(test)); print('TRAIN_START=', train['time'].iloc[0]); print('TRAIN_END=', train['time'].iloc[-1]); print('TEST_START=', test['time'].iloc[0]); print('TEST_END=', test['time'].iloc[-1])"
 
 python train_mt5_ml_strategy.py --csv output_full\train_rates.csv --symbol XAGUSD --timeframe M15 --output-dir output_train70
 ```
 
-Compilare cu onnx din output_train70. Testare pe 30% din date pe baza TEST_START si TEST_END din terminal.
+Compile with onnx from output_train70. Test on 30% of data based on TEST_START and TEST_END from terminal.
 
-## 11. Invatare pe 50% si testare pe 50%
+## 11. Learning on 50% and testing on 50%
 
-Invatare dupa 50% din date:
+Learning after 50% of data:
 ```bash
 python -c "import pandas as pd; df=pd.read_csv('output_full/training_rates_snapshot.csv', parse_dates=['time']); split=int(len(df)*0.5); train=df.iloc[:split].copy(); test=df.iloc[split:].copy(); train.to_csv('output_full/train_rates_50.csv', index=False); test.to_csv('output_full/test_rates_50.csv', index=False); print('ROWS_TOTAL=', len(df)); print('ROWS_TRAIN=', len(train)); print('ROWS_TEST=', len(test)); print('TRAIN_START=', train['time'].iloc[0]); print('TRAIN_END=', train['time'].iloc[-1]); print('TEST_START=', test['time'].iloc[0]); print('TEST_END=', test['time'].iloc[-1])"
 
 python train_mt5_ml_strategy.py --csv output_full\train_rates_50.csv --symbol XAGUSD --timeframe M15 --output-dir output_train50
 ```
 
-Compilare cu onnx din output_train50. Testare pe 50% din date pe baza TEST_START si TEST_END din terminal.
+Compile with onnx from output_train50. Test on 50% of data based on TEST_START and TEST_END from terminal.
 
-## 12. Verificare shuffled data
+## 12. Verification shuffled data
 
-Pregatire shuffled data:
+Prepare shuffled data:
 ```bash
 python -c "import pandas as pd, numpy as np; df=pd.read_csv('output_full/train_rates.csv', parse_dates=['time']); shuffled=df[['open','high','low','close','volume']].sample(frac=1, random_state=42).reset_index(drop=True); out=pd.DataFrame({'time': df['time'].reset_index(drop=True), 'open': shuffled['open'], 'high': shuffled['high'], 'low': shuffled['low'], 'close': shuffled['close'], 'volume': shuffled['volume']}); out.to_csv('output_full/train_rates_shuffled.csv', index=False); print('Saved output_full/train_rates_shuffled.csv with', len(out), 'rows')"
 
 python train_mt5_ml_strategy.py --csv output_full\train_rates_shuffled.csv --symbol XAGUSD --timeframe M15 --output-dir output_train_shuffled
 ```
 
-Compilare cu onnx din output_train_shuffled. Testare pe 100% din date.
+Compile with onnx from output_train_shuffled. Test on 100% of data.

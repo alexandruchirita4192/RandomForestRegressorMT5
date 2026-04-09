@@ -1,23 +1,25 @@
-#property strict
-#property version   "1.00"
-#property description "EA de exemplu: model ML antrenat in Python, exportat ONNX, rulat in MT5 Strategy Tester"
+ #property strict
+ #property version   "1.00"
+ #property description "Example EA: ML model trained in Python, exported to ONNX, run in MT5 Strategy Tester"
 
 #include <Trade/Trade.mqh>
 
 // IMPORTANT:
-// Inainte de compilare, copiaza fisierul ml_strategy_model.onnx in acelasi folder cu acest .mq5.
+// Before compilation, copy the ml_strategy_model.onnx file into the same folder as this .mq5.
 #resource "ml_strategy_model.onnx" as uchar ExtModel[]
 
-input double InpLots                  = 0.10;      // Lot fix
-input double InpEntryThreshold        = 0.00060;   // Semnal minim absolut pe randamentul prezis
-input bool   InpUseAtrStops           = true;      // Foloseste SL/TP pe baza ATR
-input double InpStopAtrMultiple       = 1.50;      // SL = ATR * multiplicator
-input double InpTakeAtrMultiple       = 2.50;      // TP = ATR * multiplicator
-input int    InpMaxBarsInTrade        = 12;        // Iesire fortata dupa N bare inchise
-input bool   InpCloseOnOppositeSignal = true;      // Inchide pe semnal opus
-input bool   InpAllowLong             = true;      // Permite BUY
-input bool   InpAllowShort            = true;      // Permite SELL
+input double InpLots                  = 0.10;      // InpLots: Fixed lot
+input double InpEntryThreshold        = 0.00060;   // InpEntryThreshold: Minimum absolute signal on predicted return
+input bool   InpUseAtrStops           = true;      // InpUseAtrStops: Use ATR-based SL/TP
+input double InpStopAtrMultiple       = 1.50;      // InpStopAtrMultiple: SL = ATR * multiplier
+input double InpTakeAtrMultiple       = 2.50;      // InpTakeAtrMultiple: TP = ATR * multiplier
+input int    InpMaxBarsInTrade        = 12;        // InpMaxBarsInTrade: Force exit after N closed bars
+input bool   InpCloseOnOppositeSignal = true;      // InpCloseOnOppositeSignal: Close on opposite signal
+input bool   InpAllowLong             = true;      // InpAllowLong: Allow BUY
+input bool   InpAllowShort            = true;      // InpAllowShort: Allow SELL
 input long   InpMagic                 = 26042026;  // Magic number
+input bool   InpLog                   = false;     // Print output
+input bool   InpDebugLog              = false;     // Print output on each tick (debugging)
 
 const int FEATURE_COUNT = 10;
 const long EXT_INPUT_SHAPE[]  = {1, FEATURE_COUNT};
@@ -103,10 +105,10 @@ bool BuildFeatureVector(matrixf &features, double &atr14)
    MqlRates rates[];
    ArraySetAsSeries(rates, true);
 
-   // Avem nevoie de bare suficiente pentru toate ferestrele si pentru ATR.
+   // We need enough bars for the windows and for the ATR.
    if(CopyRates(_Symbol, _Period, 0, 80, rates) < 40)
      {
-      Print("Nu sunt suficiente bare pentru features.");
+      if(InpLog) Print("Not enough bars for features.");
       return false;
      }
 
@@ -116,7 +118,7 @@ bool BuildFeatureVector(matrixf &features, double &atr14)
    for(int i = 0; i < ArraySize(rates); i++)
       closes[i] = rates[i].close;
 
-   // Folosim doar bare inchise. Shift 1 = ultima bara inchisa.
+   // We use only closed bars. Shift 1 = last closed bar.
    int s = 1;
 
    double ret_1  = (closes[s] / closes[s + 1]) - 1.0;
@@ -174,7 +176,7 @@ bool PredictNextReturn(double &prediction, double &atr14)
    vectorf y(1);
    if(!OnnxRun(g_model_handle, ONNX_NO_CONVERSION, x, y))
      {
-      Print("OnnxRun failed. Error=", GetLastError());
+      if(InpLog) Print("OnnxRun failed. Error=", GetLastError());
       return false;
      }
 
@@ -291,13 +293,13 @@ int OnInit()
    g_model_handle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
    if(g_model_handle == INVALID_HANDLE)
      {
-      Print("OnnxCreateFromBuffer failed. Error=", GetLastError());
+      if(InpLog) Print("OnnxCreateFromBuffer failed. Error=", GetLastError());
       return INIT_FAILED;
      }
 
    if(!OnnxSetInputShape(g_model_handle, 0, EXT_INPUT_SHAPE))
      {
-      Print("OnnxSetInputShape failed. Error=", GetLastError());
+      if(InpLog) Print("OnnxSetInputShape failed. Error=", GetLastError());
       OnnxRelease(g_model_handle);
       g_model_handle = INVALID_HANDLE;
       return INIT_FAILED;
@@ -305,7 +307,7 @@ int OnInit()
 
    if(!OnnxSetOutputShape(g_model_handle, 0, EXT_OUTPUT_SHAPE))
      {
-      Print("OnnxSetOutputShape failed. Error=", GetLastError());
+      if(InpLog) Print("OnnxSetOutputShape failed. Error=", GetLastError());
       OnnxRelease(g_model_handle);
       g_model_handle = INVALID_HANDLE;
       return INIT_FAILED;
@@ -337,7 +339,8 @@ void OnTick()
 
    SignalDirection signal = SignalFromPrediction(prediction);
 
-   PrintFormat("ML prediction=%.8f threshold=%.8f signal=%d atr14=%.5f", prediction, InpEntryThreshold, signal, atr14);
+   if(InpDebugLog && InpLog)
+      PrintFormat("ML prediction=%.8f threshold=%.8f signal=%d atr14=%.5f", prediction, InpEntryThreshold, signal, atr14);
 
    ManageExistingPosition(signal);
 

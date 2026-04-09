@@ -36,7 +36,7 @@ FEATURE_COLS = [
 def fetch_rates_from_mt5(symbol: str, timeframe_name: str, bars: int) -> pd.DataFrame:
     if mt5 is None:
         raise RuntimeError(
-            "Pachetul MetaTrader5 pentru Python nu este instalat. Instaleaza-l cu: pip install MetaTrader5"
+            "The MetaTrader5 package for Python is not installed. Install it with: pip install MetaTrader5"
         )
 
     timeframe_map = {
@@ -49,15 +49,15 @@ def fetch_rates_from_mt5(symbol: str, timeframe_name: str, bars: int) -> pd.Data
         "D1": mt5.TIMEFRAME_D1,
     }
     if timeframe_name not in timeframe_map:
-        raise ValueError(f"Timeframe nesuportat: {timeframe_name}")
+        raise ValueError(f"Unsupported timeframe: {timeframe_name}")
 
     if not mt5.initialize():
-        raise RuntimeError(f"initialize() a esuat: {mt5.last_error()}")
+        raise RuntimeError(f"initialize() failed: {mt5.last_error()}")
 
     try:
         rates = mt5.copy_rates_from_pos(symbol, timeframe_map[timeframe_name], 0, bars)
         if rates is None or len(rates) == 0:
-            raise RuntimeError(f"Nu am putut citi datele pentru {symbol} {timeframe_name}. last_error={mt5.last_error()}")
+            raise RuntimeError(f"Could not read data for {symbol} {timeframe_name}. last_error={mt5.last_error()}")
         df = pd.DataFrame(rates)
         df["time"] = pd.to_datetime(df["time"], unit="s", utc=True)
         df = df.rename(columns={"tick_volume": "volume"})
@@ -74,7 +74,7 @@ def load_rates_from_csv(csv_path: Path) -> pd.DataFrame:
     expected = {"time", "open", "high", "low", "close"}
     missing = expected - set(df.columns)
     if missing:
-        raise ValueError(f"CSV-ul nu contine coloanele obligatorii: {sorted(missing)}")
+        raise ValueError(f"CSV does not contain mandatory columns: {sorted(missing)}")
 
     if "volume" not in df.columns:
         df["volume"] = 0.0
@@ -206,12 +206,12 @@ def save_metadata(output_dir: Path, report: dict, threshold: float, symbol: str,
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Antreneaza un model ML pentru MT5 si exporta ONNX.")
-    p.add_argument("--symbol", default="EURUSD", help="Simbolul folosit la training")
+    p = argparse.ArgumentParser(description="Train an ML model for MT5 and export ONNX.")
+    p.add_argument("--symbol", default="EURUSD", help="Symbol used for training")
     p.add_argument("--timeframe", default="H1", help="M1/M5/M15/M30/H1/H4/D1")
-    p.add_argument("--bars", type=int, default=15000, help="Numar de bare de citit din MT5")
-    p.add_argument("--csv", type=str, default="", help="Alternativ, citeste datele din CSV")
-    p.add_argument("--output-dir", default="output", help="Directorul de output")
+    p.add_argument("--bars", type=int, default=15000, help="Number of bars to read from MT5")
+    p.add_argument("--csv", type=str, default="", help="Alternatively, read data from CSV")
+    p.add_argument("--output-dir", default="output", help="Output directory")
     return p.parse_args()
 
 
@@ -230,9 +230,9 @@ def main() -> None:
     feat_df = build_features(raw)
     feat_df.to_csv(output_dir / "training_features_snapshot.csv", index=False)
 
-    print(f"Set de antrenare: {len(feat_df)} randuri")
+    print(f"Training set: {len(feat_df)} rows")
     report = walk_forward_report(feat_df)
-    print("\nRezumat walk-forward:")
+    print("\nWalk-forward summary:")
     print(json.dumps(report, indent=2))
 
     model = fit_final_model(feat_df)
@@ -242,9 +242,9 @@ def main() -> None:
     threshold = compute_suggested_threshold(feat_df, quantile=0.60)
     save_metadata(output_dir, report, threshold, args.symbol, args.timeframe)
 
-    print(f"\nModel ONNX salvat in: {onnx_path}")
-    print(f"Prag initial sugerat pentru EA: {threshold:.8f}")
-    print("Copiaza fisierul ml_strategy_model.onnx langa EA-ul .mq5 inainte de compilare.")
+    print(f"\nONNX model saved in: {onnx_path}")
+    print(f"Initial threshold suggested for EA: {threshold:.8f}")
+    print("Copy the ml_strategy_model.onnx file next to the EA file .mq5 before compiling.")
 
 
 if __name__ == "__main__":
