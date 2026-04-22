@@ -1,4 +1,4 @@
-# ML Strategy for MetaTrader 5: Python -> ONNX -> MQL5 Expert Advisor
+# Random Forest Regressor ML Strategy for MetaTrader 5: Python -> ONNX -> MQL5 Expert Advisor
 
 This package contains a complete example for the most practical flow when you want:
 
