@@ -70,7 +70,7 @@ If you don't want to read data directly from the MT5 terminal, you can also use 
 The MT5 terminal must be started and connected.
 
 ```bash
-python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
+python train_random_forrest_regressor.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
 ```
 
 ### Variant B - read from CSV
@@ -90,7 +90,7 @@ Optional:
 Example:
 
 ```bash
-python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
+python train_random_forrest_regressor.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output
 ```
 
 ### What you get after running
@@ -108,7 +108,7 @@ In the `output/` directory:
 
 ## 3. Preparation for MT5
 
-1. Copy `MT5_ML_ONNX_Strategy.mq5` to:
+1. Copy `MT5_RF_Regressor_ONNX_Strategy.mq5` to:
    - `MQL5/Experts/` or a subfolder of it.
 2. Copy `output/ml_strategy_model.onnx` to the **same folder** as the `.mq5` file.
 3. Open `MetaEditor`.
@@ -122,7 +122,7 @@ In the `output/` directory:
 
 In Strategy Tester:
 
-1. Select `MT5_ML_ONNX_Strategy`
+1. Select `MT5_RF_Regressor_ONNX_Strategy`
 2. Choose the same symbol and same timeframe used in training
 3. Choose the test period
 4. Since the EA works only on the appearance of a new bar, you can use a modeling compatible with bar backtest; however, also test in the most realistic mode available for your broker
@@ -252,14 +252,14 @@ After you confirm that the flow works end-to-end:
 
 Preparation of full output data in `output_full`:
 ```bash
-python train_mt5_ml_strategy.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output_full
+python train_random_forrest_regressor.py --symbol XAGUSD --timeframe M15 --bars 15000 --output-dir output_full
 ```
 
 Learning after 70% of data:
 ```bash
 python -c "import pandas as pd; df=pd.read_csv('output_full/training_rates_snapshot.csv', parse_dates=['time']); split=int(len(df)*0.7); train=df.iloc[:split].copy(); test=df.iloc[split:].copy(); train.to_csv('output_full/train_rates.csv', index=False); test.to_csv('output_full/test_rates.csv', index=False); print('ROWS_TOTAL=', len(df)); print('ROWS_TRAIN=', len(train)); print('ROWS_TEST=', len(test)); print('TRAIN_START=', train['time'].iloc[0]); print('TRAIN_END=', train['time'].iloc[-1]); print('TEST_START=', test['time'].iloc[0]); print('TEST_END=', test['time'].iloc[-1])"
 
-python train_mt5_ml_strategy.py --csv output_full\train_rates.csv --symbol XAGUSD --timeframe M15 --output-dir output_train70
+python train_random_forrest_regressor.py --csv output_full\train_rates.csv --symbol XAGUSD --timeframe M15 --output-dir output_train70
 ```
 
 Compile with onnx from output_train70. Test on 30% of data based on TEST_START and TEST_END from terminal.
@@ -270,7 +270,7 @@ Learning after 50% of data:
 ```bash
 python -c "import pandas as pd; df=pd.read_csv('output_full/training_rates_snapshot.csv', parse_dates=['time']); split=int(len(df)*0.5); train=df.iloc[:split].copy(); test=df.iloc[split:].copy(); train.to_csv('output_full/train_rates_50.csv', index=False); test.to_csv('output_full/test_rates_50.csv', index=False); print('ROWS_TOTAL=', len(df)); print('ROWS_TRAIN=', len(train)); print('ROWS_TEST=', len(test)); print('TRAIN_START=', train['time'].iloc[0]); print('TRAIN_END=', train['time'].iloc[-1]); print('TEST_START=', test['time'].iloc[0]); print('TEST_END=', test['time'].iloc[-1])"
 
-python train_mt5_ml_strategy.py --csv output_full\train_rates_50.csv --symbol XAGUSD --timeframe M15 --output-dir output_train50
+python train_random_forrest_regressor.py --csv output_full\train_rates_50.csv --symbol XAGUSD --timeframe M15 --output-dir output_train50
 ```
 
 Compile with onnx from output_train50. Test on 50% of data based on TEST_START and TEST_END from terminal.
@@ -281,7 +281,7 @@ Prepare shuffled data:
 ```bash
 python -c "import pandas as pd, numpy as np; df=pd.read_csv('output_full/train_rates.csv', parse_dates=['time']); shuffled=df[['open','high','low','close','volume']].sample(frac=1, random_state=42).reset_index(drop=True); out=pd.DataFrame({'time': df['time'].reset_index(drop=True), 'open': shuffled['open'], 'high': shuffled['high'], 'low': shuffled['low'], 'close': shuffled['close'], 'volume': shuffled['volume']}); out.to_csv('output_full/train_rates_shuffled.csv', index=False); print('Saved output_full/train_rates_shuffled.csv with', len(out), 'rows')"
 
-python train_mt5_ml_strategy.py --csv output_full\train_rates_shuffled.csv --symbol XAGUSD --timeframe M15 --output-dir output_train_shuffled
+python train_random_forrest_regressor.py --csv output_full\train_rates_shuffled.csv --symbol XAGUSD --timeframe M15 --output-dir output_train_shuffled
 ```
 
 Compile with onnx from output_train_shuffled. Test on 100% of data.
