@@ -9,8 +9,8 @@ This package contains a complete example for the most practical flow when you wa
 
 ## What it contains
 
-- `train_mt5_ml_strategy.py` - Python script for training and ONNX export
-- `MT5_ML_ONNX_Strategy.mq5` - Expert Advisor for MT5
+- `train_random_forrest_regressor.py` - Python script for training and ONNX export
+- `MT5_RF_Regressor_ONNX_Strategy.mq5` - Expert Advisor for MT5
 - `README.md` - work steps
 
 ## Strategy idea
